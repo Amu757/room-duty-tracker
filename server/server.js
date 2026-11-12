@@ -15,6 +15,8 @@ const DEFAULT_GRID = [
 
 const app = express();
 app.use(cors());
+app.set('etag', false);
+app.use('/api', (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 app.use('/api', async (req, res, next) => {
   try { await connectDB(); next(); }
   catch (e) { conn = null; res.status(500).json({ error: 'DB connection failed: ' + e.message }); }
@@ -55,7 +57,7 @@ app.put('/api/logs', wrap(async (req, res) => {
 app.patch('/api/logs/:date/:duty/settle', wrap(async (req, res) => {
   const doc = await Log.findOne({ date: req.params.date, duty: Number(req.params.duty) });
   if (!doc) return res.status(404).json({ error: 'Not found' });
-  doc.z = !doc.z;
+  doc.z = typeof req.body.z === 'boolean' ? req.body.z : !doc.z;
   await doc.save();
   res.json(clean(doc));
 }));
